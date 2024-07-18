@@ -1,20 +1,18 @@
-#include <libnetfilter_log/libnetfilter_log.h>
-#include <netinet/ip.h>
-#include <stdlib.h>
-#include <arpa/inet.h>
 
+#include <errno.h>
 #include "sniffer.h"
 
-int init(nflog_handle_t *handle, nflog_g_handle_t *group_handle, cleanup_state_e *state)
+int init_sniffer(nflog_handle_t *handle, nflog_g_handle_t *group_handle, cleanup_state_e *state)
 {
     int i;
     *state = NO_CLEANUP;
 
     // fetching a handle for nflog
+    fprintf(stdout, "Opening handle\n");
     handle = nflog_open();
     if (!handle)
     {
-        fprintf(stderr, "Error opening netfilter log handle\n");
+        fprintf(stdout, "Error opening netfilter log handle\n");
         return EXIT_ERROR;
     }
 
@@ -23,16 +21,18 @@ int init(nflog_handle_t *handle, nflog_g_handle_t *group_handle, cleanup_state_e
     for (i = 0; i < 2; i++)
     {
         // unbinding any leftovers
+        fprintf(stdout, "Unbinding %d\n", protocols[i]);
         if (nflog_unbind_pf(handle, protocols[i]) < 0)
         {
-            fprintf(stderr, "Error unbinding from %d\n", protocols[i]);
+            fprintf(stdout, "Error unbinding from %d\n", protocols[i]);
             return EXIT_ERROR;
         }
 
         // binding to AF_INET/6
+        fprintf(stdout, "Binding %d\n", protocols[i]);
         if (nflog_bind_pf(handle, protocols[i]) < 0)
         {
-            fprintf(stderr, "error during nflog_bind_pf() for %d\n", protocols[i]);
+            fprintf(stdout, "error during nflog_bind_pf() for %d\n", protocols[i]);
             return EXIT_ERROR;
         }
 
@@ -42,41 +42,47 @@ int init(nflog_handle_t *handle, nflog_g_handle_t *group_handle, cleanup_state_e
         }
     }
 
+    fprintf(stdout, "Binding Handle to group %d\n", NFLOG_GROUP);
     group_handle = nflog_bind_group(handle, NFLOG_GROUP);
     if (!group_handle)
     {
-        fprintf(stderr, "Error, no handle for nflog group %d\n", NFLOG_GROUP);
+        fprintf(stdout, "Error, no handle for nflog group %d\n", NFLOG_GROUP);
         return EXIT_ERROR;
     }
 
     *state = GROUP_HANDLE;
 
+    fprintf(stdout, "Setting nflog mode to copy packets\n");
     if (nflog_set_mode(group_handle, NFULNL_COPY_PACKET, MAX_PKT_SIZE) < 0)
     {
-        fprintf(stderr, "Error setting nflog mode\n");
+        fprintf(stdout, "Error setting nflog mode\n");
         return EXIT_ERROR;
     }
-    
+
     return EXIT_OK;
 }
 
-int get_nflog_fd(nflog_handle_t *handle, int *out_fd) {
+int get_nflog_fd(nflog_handle_t *handle, int *out_fd)
+{
+    fprintf(stdout, "Opening fd to nflog\n");
     *out_fd = nflog_fd(handle);
-
-    if (nflog_fd < 0) {
-        fprintf(stderr, "Error getting nflog file descriptor\n");
+    if (*out_fd < 0)
+    {
+        fprintf(stdout, "Error getting nflog file descriptor\n");
         return EXIT_ERROR;
     }
+
+    return EXIT_OK;
 }
 
-void close(nflog_handle_t *handle, nflog_g_handle_t *group_handle, FILE *log_fd, cleanup_state_e *state)
+void close_sniffer(nflog_handle_t *handle, nflog_g_handle_t *group_handle, cleanup_state_e *state)
 {
-    if (state == NO_CLEANUP)
+    if (*state == NO_CLEANUP)
         return;
 
-    if (state >= GROUP_HANDLE)
+    if (*state >= GROUP_HANDLE)
         nflog_unbind_group(group_handle);
 
-    if (state >= HANDLE)
+    if (*state >= HANDLE)
         nflog_close(handle);
 }

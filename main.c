@@ -1,10 +1,9 @@
 
-#include "sniffer.c"
-
-
+#include "sniffer.h"
 
 int main()
 {
+    int exit_code = EXIT_OK;
     nflog_handle_t *handle;
     nflog_g_handle_t *group_handle;
     FILE *log_fd;
@@ -12,36 +11,54 @@ int main()
     int nflog_fd, rv;
     char buffer[BUFFER_SIZE];
 
-    log_fd = fopen(LOG_FILE_PATH, LOG_FILE_MODE);
-    if (!log_fd)
+    fprintf(stdout, "Starting...\n");
+
+    // log_fd = fopen(LOG_FILE_PATH, LOG_FILE_MODE);
+    // if (!log_fd)
+    // {
+    //     fprintf(stdout, "Error opening log file\n");
+    //     return EXIT_ERROR;
+    // }
+
+    // fprintf(stdout, "Opening log file\n");
+
+    fprintf(stdout, "calling init_sniffer\n");
+    if ((init_sniffer(handle, group_handle, &state)) == EXIT_ERROR)
     {
-        fprintf(stderr, "Error opening log file\n");
-        return EXIT_ERROR;
+        fprintf(stdout, "error while called init_sniffer\n");
+        goto cleanup;
     }
 
-    if (init(handle, group_handle, &state) == EXIT_ERROR)
+    fprintf(stdout, "calling get_nflog_fd\n");
+    if ((exit_code = get_nflog_fd(handle, &nflog_fd)) == EXIT_ERROR)
+    {
+        fprintf(stdout, "error while called get_nflog_fd:\n");
         goto cleanup;
-    
+    }
 
-    if (get_nflog_fd(handle, &nflog_fd) == EXIT_ERROR)
-        goto cleanup;
-
-    while ((rv = recv(nflog_fd, buffer, BUFFER_SIZE, 0) && rv >= 0)) {
-        nfulnl_msg_packet_hdr_t *pkt_header = (nfulnl_msg_packet_hdr_t*)buffer;
+    fprintf(stdout, "sniffing\n");
+    while ((rv = recv(nflog_fd, buffer, BUFFER_SIZE, 0) && rv >= 0))
+    {
+        nfulnl_msg_packet_hdr_t *pkt_header = (nfulnl_msg_packet_hdr_t *)buffer;
         iphdr_t *ip_header = (iphdr_t *)(buffer + sizeof(nfulnl_msg_packet_hdr_t));
         udphdr_t *udp_header = (udphdr_t *)(buffer + sizeof(nfulnl_msg_packet_hdr_t) + ip_header->ihl * 4);
 
         // even though the iptables rule is only for udp:53, im still checking the pkt headers for protocol and port
-        if (ip_header->protocol == IPPROTO_UDP)
+        if (ip_header->protocol == IPPROTO_UDP && ntohs(udp_header->dest) == DNS_PORT)
         {
-            
+            fprintf(stdout, "got dns\n");
+            char src_ip[INET_ADDRSTRLEN], dst_ip[INET_ADDRSTRLEN];
+            inet_ntop(AF_INET, &ip_header->saddr, src_ip, INET_ADDRSTRLEN);
+            inet_ntop(AF_INET, &ip_header->daddr, dst_ip, INET_ADDRSTRLEN);
+            fprintf(stdout, "DNS packet: %s -> %s\n", src_ip, dst_ip);
         }
     }
 
 cleanup:
+    fprintf(stdout, "cleanup\n");
     fclose(log_fd);
-    close(handle, group_handle, &state);
-    return EXIT_OK;
+    close_sniffer(handle, group_handle, &state);
+    return exit_code;
 }
 
 // while ((rv = recv(fd, buf, sizeof(buf), 0)) && rv >= 0)
