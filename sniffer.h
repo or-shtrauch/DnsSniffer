@@ -34,15 +34,14 @@ typedef enum cleanup_state {
     NO_CLEANUP = 0,
     HANDLE,
     GROUP_HANDLE,
-    LOG_FILE,
 } cleanup_state_e;
 
-int init(nflog_handle_t *handle, nflog_g_handle_t *group_handle, FILE *log_fd, cleanup_state_e *state);
+int init(nflog_handle_t *handle, nflog_g_handle_t *group_handle, cleanup_state_e *state);
 
 int get_nflog_fd(nflog_handle_t *handle, int *out_fd);
 
 void subscribe_to_dns_pkts(int *nflog_fd, void(*dns_cb) (FILE *));
 
-void close(nflog_handle_t *handle, nflog_g_handle_t *group_handle, FILE *log_fd, cleanup_state_e *state);
+void close(nflog_handle_t *handle, nflog_g_handle_t *group_handle, cleanup_state_e *state);
 
 #endif

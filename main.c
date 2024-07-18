@@ -12,7 +12,14 @@ int main()
     int nflog_fd, rv;
     char buffer[BUFFER_SIZE];
 
-    if (init(handle, group_handle, log_fd, &state) == EXIT_ERROR)
+    log_fd = fopen(LOG_FILE_PATH, LOG_FILE_MODE);
+    if (!log_fd)
+    {
+        fprintf(stderr, "Error opening log file\n");
+        return EXIT_ERROR;
+    }
+
+    if (init(handle, group_handle, &state) == EXIT_ERROR)
         goto cleanup;
     
 
@@ -26,10 +33,14 @@ int main()
 
         // even though the iptables rule is only for udp:53, im still checking the pkt headers for protocol and port
         if (ip_header->protocol == IPPROTO_UDP)
+        {
+            
+        }
     }
 
 cleanup:
-    close(handle, group_handle, log_fd, &state);
+    fclose(log_fd);
+    close(handle, group_handle, &state);
     return EXIT_OK;
 }
 

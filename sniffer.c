@@ -5,7 +5,7 @@
 
 #include "sniffer.h"
 
-int init(nflog_handle_t *handle, nflog_g_handle_t *group_handle, FILE *log_fd, cleanup_state_e *state)
+int init(nflog_handle_t *handle, nflog_g_handle_t *group_handle, cleanup_state_e *state)
 {
     int i;
     *state = NO_CLEANUP;
@@ -56,16 +56,7 @@ int init(nflog_handle_t *handle, nflog_g_handle_t *group_handle, FILE *log_fd, c
         fprintf(stderr, "Error setting nflog mode\n");
         return EXIT_ERROR;
     }
-
-    FILE *fp = fopen(LOG_FILE_PATH, LOG_FILE_MODE);
-    if (!fp)
-    {
-        fprintf(stderr, "Error opening log file\n");
-        return EXIT_ERROR;
-    }
-
-    *state = LOG_FILE;
-
+    
     return EXIT_OK;
 }
 
@@ -88,7 +79,4 @@ void close(nflog_handle_t *handle, nflog_g_handle_t *group_handle, FILE *log_fd,
 
     if (state >= HANDLE)
         nflog_close(handle);
-
-    if (state == LOG_FILE)
-        fclose(log_fd);
 }
