@@ -43,7 +43,7 @@ typedef enum cleanup_state {
 
 int init_sniffer(nflog_handle_t *handle, nflog_g_handle_t *group_handle, cleanup_state_e *state);
 
-int get_nflog_fd(nflog_handle_t *handle, int *out_fd);
+// int get_nflog_fd(nflog_handle_t *handle, int *out_fd);
 
 void subscribe_to_dns_pkts(int *nflog_fd, void(*dns_cb) (FILE *));
 

@@ -4,11 +4,11 @@
 int main()
 {
     int exit_code = EXIT_OK;
-    nflog_handle_t *handle;
-    nflog_g_handle_t *group_handle;
-    FILE *log_fd;
+    nflog_handle_t *handle = NULL;
+    nflog_g_handle_t *group_handle = NULL;
+    // FILE *log_fd;
     cleanup_state_e state;
-    int nflog_fd, rv;
+    int fd = 0, rv;
     char buffer[BUFFER_SIZE];
 
     fprintf(stdout, "Starting...\n");
@@ -23,25 +23,36 @@ int main()
     // fprintf(stdout, "Opening log file\n");
 
     fprintf(stdout, "calling init_sniffer\n");
-    if ((init_sniffer(handle, group_handle, &state)) == EXIT_ERROR)
+    if ((init_sniffer(&handle, &group_handle, &state)) == EXIT_ERROR)
     {
         fprintf(stdout, "error while called init_sniffer\n");
         goto cleanup;
     }
 
-    fprintf(stdout, "calling get_nflog_fd\n");
-    if ((exit_code = get_nflog_fd(handle, &nflog_fd)) == EXIT_ERROR)
+    // fprintf(stdout, "calling get_nflog_fd\n");
+    // if ((exit_code = get_nflog_fd(handle, &nflog_fd)) == EXIT_ERROR)
+    // {
+    //     fprintf(stdout, "error while called get_nflog_fd:\n");
+    //     goto cleanup;
+    // }
+
+
+    fprintf(stdout, "nflog_fd = %p\n", handle);
+    fd = nflog_fd(handle);
+    if (fd < 0)
     {
-        fprintf(stdout, "error while called get_nflog_fd:\n");
+        fprintf(stdout, "Error getting nflog file descriptor - %d\n", fd);
         goto cleanup;
     }
 
     fprintf(stdout, "sniffing\n");
-    while ((rv = recv(nflog_fd, buffer, BUFFER_SIZE, 0) && rv >= 0))
+    while ((rv = recv(fd, buffer, BUFFER_SIZE, 0) && rv >= 0))
     {
-        nfulnl_msg_packet_hdr_t *pkt_header = (nfulnl_msg_packet_hdr_t *)buffer;
+        // nfulnl_msg_packet_hdr_t *pkt_header = (nfulnl_msg_packet_hdr_t *)buffer;
         iphdr_t *ip_header = (iphdr_t *)(buffer + sizeof(nfulnl_msg_packet_hdr_t));
         udphdr_t *udp_header = (udphdr_t *)(buffer + sizeof(nfulnl_msg_packet_hdr_t) + ip_header->ihl * 4);
+
+        fprintf(stdout, "Received packet: %d bytes\n", ip_header->ihl);
 
         // even though the iptables rule is only for udp:53, im still checking the pkt headers for protocol and port
         if (ip_header->protocol == IPPROTO_UDP && ntohs(udp_header->dest) == DNS_PORT)
@@ -56,7 +67,7 @@ int main()
 
 cleanup:
     fprintf(stdout, "cleanup\n");
-    fclose(log_fd);
+    // fclose(log_fd);
     close_sniffer(handle, group_handle, &state);
     return exit_code;
 }
