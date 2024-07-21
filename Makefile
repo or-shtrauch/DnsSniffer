@@ -1,7 +1,7 @@
 CC = gcc
 CFLAGS = -Wall -Wextra -g 
 
-OBJS = main.c sniffer.c
+OBJS = main.c
 
 TARGET = dns_sniffer
 
