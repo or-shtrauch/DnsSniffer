@@ -13,9 +13,6 @@
 #define IPTABLES "/usr/sbin/iptables"
 #define IP6TABLES "/usr/sbin/ip6tables"
 
-#define OUTGOING_IPTABLES_COMMAND "INPUT -p udp --dport " DNS_PORT " -j NFLOG --nflog-group " NFLOG_GROUP
-#define OUTGOING_IP6TABLES_COMMAND "INPUT -p udp --dport " DNS_PORT " -j NFLOG --nflog-group " NFLOG_GROUP
-
 #define MAX_PKT_SIZE 0xffff
 
 #define IPV4_DNS_PAYLOAD_OFFSET 28
@@ -28,7 +25,8 @@
 #define DOMAIN_MAX_SIZE 256
 #define IP_MAX_SIZE 40  // using ipv6 size
 
-#define MAX_QTYPE_SIZE sizeof("Unknown")
+#define EXIT_SUCCESS 0
+#define EXIT_FAILURE 1
 
 typedef struct nflog_handle nflog_handle_t;
 typedef struct nflog_g_handle nflog_g_handle_t;
@@ -58,16 +56,16 @@ int add_rule(const char *iptables_path, const char *rule);
 
 int delete_rule(const char *iptables_path, const char *rule);
 
-int iptables(const char *iptables_path, int delete, char *nflog_group, char *dport);
+int iptables(const char *iptables_path, int delete, const char *nflog_group, const char *dport);
+int parse_domain(const char *dns_payload, int dns_payload_len, dns_response_t *out, int *seek);
 
-int parse_domain(char *dns_payload, int dns_payload_len, dns_response_t *response, int *seek);
-void parse_query_type(char *dns_payload, int question_start, dns_response_t *response);
+void parse_query_type(char *dns_payload, int question_start, dns_response_t *out);
 
-void parse_dns_packet(char *payload, int payload_len, dns_response_t *response);
+void parse_dns_packet(char *payload, int payload_len, dns_response_t *out);
 
-static int callback(nflog_g_handle_t *group_handle, nfgenmsg_t *nfmsg, nflog_data_t *nfa, void *data);
+static int cb_handle_dns_packet(nflog_g_handle_t *group_handle, nfgenmsg_t *nfmsg, nflog_data_t *nfa, void *data);
 
-int write_dns_response(dns_response_t response, FILE *log_fd);
+int write_dns_response(dns_response_t response, FILE * log_fd);
 
 void signal_handler(int signum);
 
