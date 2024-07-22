@@ -162,29 +162,6 @@ int write_dns_response(dns_response_t response, FILE *log_fd) {
             (response.query_type == A) ? "A" : (response.query_type == AAAA) ? "AAAA"
                                            : (response.query_type == CNAME)  ? "CNAME"
                                                                              : "Unknown");
-
-    // printf("DNS Server: %s, ", response.dns_server);
-    // printf("Domain: %s, ", response.domain);
-    // printf("IP Version: %d, ", response.ip_version);
-
-    // printf("Query type: ");
-    // switch (response.query_type) {
-    //     case A:
-    //         printf("A");
-    //         break;
-    //     case AAAA:
-    //         printf("AAAA");
-    //         break;
-
-    //     case CNAME:
-    //         printf("CNAME");
-    //         break;
-    //     default:
-    //         printf("Unknown");
-    //         break;
-    // }
-
-    // printf("\n");
 }
 
 void signal_handler(int signum) {
@@ -259,6 +236,7 @@ void cleanup(void) {
 /*
 NFLOG Flow:
  - registering signal handlers
+ - setting up firewall rules
  - open handle
  - bind handle to both ipv4 and ipv6
  - bind handle to group #
