@@ -17,41 +17,30 @@ static nflog_handle_t *handle;
 static nflog_g_handle_t *group_handle;
 static FILE *log_fd;
 
-int add_rule(const char *iptables_path, const char *rule) {
-    char cmd[100];
+int iptables(const char *iptables_path, int delete, char *nflog_group, char *dport) {
+    char *argv[] = {
+        iptables_path,
+        (delete == 1) ? "-D" : "-A",
+        "OUTPUT",
+        "-p", "udp", "-m", "udp",
+        "--dport", dport,
+        "-j", "NFLOG",
+        "--nflog-group", nflog_group,
+        NULL};
 
-    snprintf(cmd, sizeof(cmd), "%s  -A %s", iptables_path, rule);
+    printf("running iptables command: ");
+    for (int i = 0; argv[i]!= NULL; i++) {
+        printf("%s ", argv[i]);
+    }
+    printf("\n");
 
     pid_t pid = fork();
     if (pid < 0) {
         printf("failed running fork");
         return 1;
-    }
-
-    if (pid == 0) {
-        execlp("sh", "sh", "-c", cmd, (char *)NULL);
-        perror("Exec Failed: (add): %d\n");
-        exit(1);
-    } else {
-        wait(NULL);
-    }
-
-    return 0;
-}
-
-int delete_rule(const char *iptables_path, const char *rule) {
-    char cmd[100];
-    snprintf(cmd, sizeof(cmd), "%s -D %s", iptables_path, rule);
-
-    pid_t pid = fork();
-    if (pid < 0) {
-        printf("failed running fork");
-        return 1;
-    }
-
-    if (pid == 0) {
-        execlp("sh", "sh", "-c", cmd, (char *)NULL);
-        perror("Exec failed (del)");
+    } else if (pid == 0) {
+        execv(iptables_path, argv);
+        perror("Exec failed\n");
         exit(1);
     } else {
         wait(NULL);
@@ -163,17 +152,16 @@ static int callback(nflog_g_handle_t *group_handle, nfgenmsg_t *nfmsg, nflog_dat
 }
 
 int write_dns_response(dns_response_t response, FILE *log_fd) {
-
     if (!log_fd)
         return 1;
-        
-    fprintf(log_fd, "Server: %s, Domain: %s, IP Version: %s, Query Type: %s\n",
-        response.dns_server,
-        response.domain,
-        (response.ip_version == IPV4)? "IPv4" : "IPv6",
-        (response.query_type == A)? "A" : (response.query_type == AAAA)? "AAAA" : (response.query_type == CNAME)? "CNAME" : "Unknown"
-    );
 
+    fprintf(log_fd, "Server: %s, Domain: %s, IP Version: %s, Query Type: %s\n",
+            response.dns_server,
+            response.domain,
+            (response.ip_version == IPV4) ? "IPv4" : "IPv6",
+            (response.query_type == A) ? "A" : (response.query_type == AAAA) ? "AAAA"
+                                           : (response.query_type == CNAME)  ? "CNAME"
+                                                                             : "Unknown");
 
     // printf("DNS Server: %s, ", response.dns_server);
     // printf("Domain: %s, ", response.domain);
@@ -256,8 +244,9 @@ int init_nflog(void) {
 void cleanup(void) {
     printf("Cleanup\n");
 
-    // deleteIptablesRule("iptables", OUTGOING_IPTABLES_COMMAND);
-    // deleteIptablesRule("ip6tables", OUTGOING_IP6TABLES_COMMAND);
+    // i dont care if this fails, so no return value checking
+    iptables(IPTABLES, 1, NFLOG_GROUP_STR, DNS_PORT_STR);
+    iptables(IP6TABLES, 1, NFLOG_GROUP_STR, DNS_PORT_STR);
 
     if (log_fd)
         fclose(log_fd);
@@ -293,6 +282,16 @@ int main(void) {
     signal(SIGINT, signal_handler);
     signal(SIGTERM, signal_handler);
 
+    if (iptables(IPTABLES, 1, NFLOG_GROUP_STR, DNS_PORT_STR) > 0 || iptables(IP6TABLES, 1, NFLOG_GROUP_STR, DNS_PORT_STR) > 0) {
+        printf("Failed To clear previous iptables/ip6tables rules\n");
+        return 1;
+    }
+
+    if (iptables(IPTABLES, 0, NFLOG_GROUP_STR, DNS_PORT_STR) > 0 || iptables(IP6TABLES, 0, NFLOG_GROUP_STR, DNS_PORT_STR) > 0) {
+        printf("Failed To Add iptables/ip6tables rules\n");
+        return 1;
+    }
+
     if (init_nflog() > 0) {
         printf("Failed To Initialize nflog\n");
         return 1;
@@ -326,7 +325,7 @@ int main(void) {
             continue;
 
         if (nflog_handle_packet(handle, buffer, rv) < 0)
-            printf("error handling packet\n");
+            printf("error handling packet..doing nothing\n");
     }
 
     cleanup();
