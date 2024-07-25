@@ -53,3 +53,4 @@ dkms.conf
 
 log
 dns_sniffer
+.vscode/
