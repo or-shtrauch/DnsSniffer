@@ -24,12 +24,6 @@ firewall_exec_exit_status_t execute_incoming_dns_nflog_rule(iptables_rule_action
         "--nflog-group", nflog_group_str,
         NULL};
 
-    printf("running iptables command: ");
-    for (int i = 0; argv[i] != NULL; i++) {
-        printf("%s ", argv[i]);
-    }
-    printf("\n");
-
     pid_t fork_pid = fork();
     if (fork_pid < 0)
         return FW_FORK_ERROR_EXIT_CODE;
