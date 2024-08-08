@@ -19,8 +19,8 @@ static struct dns_callback_data_t g_callback_data = {0};
 
 void cleanup() {
     printf("Cleaning up...\n");
-    delete_outgoing_dns_nflog_rule(IPV4, NFLOG_GROUP);
-    delete_outgoing_dns_nflog_rule(IPV6, NFLOG_GROUP);
+    delete_output_dns_nflog_rule(IPV4, NFLOG_GROUP);
+    delete_output_dns_nflog_rule(IPV6, NFLOG_GROUP);
 
     close_dns_sniffer(&g_sniffer);
 
@@ -32,11 +32,11 @@ void cleanup() {
 
 void setup_iptables_rules() {
     /* removing any existing rules from previous runs */
-    delete_outgoing_dns_nflog_rule(IPV4, NFLOG_GROUP);
-    delete_outgoing_dns_nflog_rule(IPV6, NFLOG_GROUP);
+    delete_output_dns_nflog_rule(IPV4, NFLOG_GROUP);
+    delete_output_dns_nflog_rule(IPV6, NFLOG_GROUP);
 
-    add_outgoing_dns_nflog_rule(IPV4, NFLOG_GROUP);
-    add_outgoing_dns_nflog_rule(IPV6, NFLOG_GROUP);
+    add_output_dns_nflog_rule(IPV4, NFLOG_GROUP);
+    add_output_dns_nflog_rule(IPV6, NFLOG_GROUP);
 }
 
 void cb_print_dns_packet(struct dns_response_t *response, FILE *output_fd) {
