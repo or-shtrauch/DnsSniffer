@@ -1,11 +1,10 @@
-#include "firewall.h"
-#include "dns_sniffer.h"
-
 #include <signal.h>
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
 
+#include "dns_sniffer.h"
+#include "firewall.h"
 
 #define IPV4 4
 #define IPV6 6
@@ -20,8 +19,8 @@ static struct dns_callback_data_t g_callback_data = {0};
 
 void cleanup() {
     printf("Cleaning up...\n");
-    delete_incoming_dns_nflog_rule(IPV4, NFLOG_GROUP);
-    delete_incoming_dns_nflog_rule(IPV6, NFLOG_GROUP);
+    delete_outgoing_dns_nflog_rule(IPV4, NFLOG_GROUP);
+    delete_outgoing_dns_nflog_rule(IPV6, NFLOG_GROUP);
 
     close_dns_sniffer(&g_sniffer);
 
@@ -33,11 +32,11 @@ void cleanup() {
 
 void setup_iptables_rules() {
     /* removing any existing rules from previous runs */
-    delete_incoming_dns_nflog_rule(IPV4, NFLOG_GROUP);
-    delete_incoming_dns_nflog_rule(IPV6, NFLOG_GROUP);
+    delete_outgoing_dns_nflog_rule(IPV4, NFLOG_GROUP);
+    delete_outgoing_dns_nflog_rule(IPV6, NFLOG_GROUP);
 
-    add_incoming_dns_nflog_rule(IPV4, NFLOG_GROUP);
-    add_incoming_dns_nflog_rule(IPV6, NFLOG_GROUP);
+    add_outgoing_dns_nflog_rule(IPV4, NFLOG_GROUP);
+    add_outgoing_dns_nflog_rule(IPV6, NFLOG_GROUP);
 }
 
 void cb_print_dns_packet(struct dns_response_t *response, FILE *output_fd) {
@@ -46,7 +45,14 @@ void cb_print_dns_packet(struct dns_response_t *response, FILE *output_fd) {
     struct tm *local = localtime(&now);
 
     strftime(timestamp, sizeof(timestamp), "%d-%m-%Y %H:%M:%S", local);
-
+    printf("%s | Server: %s, Domain: %s, IP Version: %s, Query Type: %s\n",
+           timestamp,
+           response->dns_server,
+           response->domain,
+           (response->ip_version == IPV4) ? "IPv4" : "IPv6",
+           (response->query_type == A) ? "A" : (response->query_type == AAAA) ? "AAAA"
+                                           : (response->query_type == CNAME)  ? "CNAME"
+                                                                              : "Unknown");
     fprintf(output_fd, "%s | Server: %s, Domain: %s, IP Version: %s, Query Type: %s\n",
             timestamp,
             response->dns_server,

@@ -104,7 +104,7 @@ static void parse_dns_packet(char *payload, int payload_len, struct dns_response
         packet
     */
     if (out->ip_version == IPV4) {
-        inet_ntop(AF_INET, (char *)(payload + 12), out->dns_server, INET_ADDRSTRLEN);
+        inet_ntop(AF_INET, (char *)(payload + DST_IPV4_OFFSET), out->dns_server, INET_ADDRSTRLEN);
 
         if (payload_len < IPV4_DNS_PAYLOAD_OFFSET) {
             return;
@@ -113,7 +113,7 @@ static void parse_dns_packet(char *payload, int payload_len, struct dns_response
         dns_payload = (char *)(payload + IPV4_DNS_PAYLOAD_OFFSET);
         dns_payload_len = payload_len - IPV4_DNS_PAYLOAD_OFFSET;
     } else {  // IPV6
-        inet_ntop(AF_INET6, (char *)(payload + 8), out->dns_server, INET6_ADDRSTRLEN);
+        inet_ntop(AF_INET6, (char *)(payload + DST_IPV6_OFFSET), out->dns_server, INET6_ADDRSTRLEN);
 
         if (payload_len < IPV6_DNS_PAYLOAD_OFFSET) {
             return;

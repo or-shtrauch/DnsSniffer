@@ -20,6 +20,8 @@
 #define DOMAIN_MAX_SIZE 256
 #define IP_MAX_SIZE 40  // using ipv6 size
 
+#define DST_IPV4_OFFSET 16
+#define DST_IPV6_OFFSET 24
 
 enum dns_pkt_qtype_t {
     A = 1,

@@ -18,8 +18,8 @@ enum firewall_exec_exit_status_t {
     FW_SUCCESS_EXIT_CODE = 0,
 };
 
-enum firewall_exec_exit_status_t add_incoming_dns_nflog_rule(int ip_version, uint16_t nflog_group);
+enum firewall_exec_exit_status_t add_outgoing_dns_nflog_rule(int ip_version, uint16_t nflog_group);
 
-enum firewall_exec_exit_status_t delete_incoming_dns_nflog_rule(int ip_version, uint16_t nflog_group);
+enum firewall_exec_exit_status_t delete_outgoing_dns_nflog_rule(int ip_version, uint16_t nflog_group);
 
 #endif
