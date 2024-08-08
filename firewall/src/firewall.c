@@ -2,10 +2,10 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/wait.h>
 #include <unistd.h>
+#include <sys/wait.h>
 
-firewall_exec_exit_status_t execute_incoming_dns_nflog_rule(iptables_rule_action_t rule_action, int ip_version, uint16_t nflog_group) {
+static enum firewall_exec_exit_status_t execute_incoming_dns_nflog_rule(enum iptables_rule_action_t rule_action, int ip_version, uint16_t nflog_group) {
     char rule_action_str[3];
     char iptables_path[20];
     char nflog_group_str[NFLOG_BINDINGS_MAX_GROUP_SIZE];
@@ -44,10 +44,10 @@ firewall_exec_exit_status_t execute_incoming_dns_nflog_rule(iptables_rule_action
     }
 }
 
-firewall_exec_exit_status_t add_incoming_dns_nflog_rule(int ip_version, uint16_t nflog_group) {
+enum firewall_exec_exit_status_t add_incoming_dns_nflog_rule(int ip_version, uint16_t nflog_group) {
     return execute_incoming_dns_nflog_rule(ADD_RULE, ip_version, nflog_group);
 }
 
-firewall_exec_exit_status_t delete_incoming_dns_nflog_rule(int ip_version, uint16_t nflog_group) {
+enum firewall_exec_exit_status_t delete_incoming_dns_nflog_rule(int ip_version, uint16_t nflog_group) {
     return execute_incoming_dns_nflog_rule(DELETE_RULE, ip_version, nflog_group);
 }

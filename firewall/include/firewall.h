@@ -7,21 +7,19 @@
 #define EXIT_CODE_MASK 0xFF
 #define NFLOG_BINDINGS_MAX_GROUP_SIZE 6
 
-typedef enum {
+enum iptables_rule_action_t {
     DELETE_RULE = 1,
     ADD_RULE = 0
-} iptables_rule_action_t;
+};
 
-typedef enum {
+enum firewall_exec_exit_status_t {
     FW_EXEC_ERROR_EXIT_CODE = -2,
     FW_FORK_ERROR_EXIT_CODE = -1,
     FW_SUCCESS_EXIT_CODE = 0,
-} firewall_exec_exit_status_t;
+};
 
-firewall_exec_exit_status_t execute_incoming_dns_nflog_rule(iptables_rule_action_t rule_action, int ip_version, uint16_t nflog_group);
+enum firewall_exec_exit_status_t add_incoming_dns_nflog_rule(int ip_version, uint16_t nflog_group);
 
-firewall_exec_exit_status_t add_incoming_dns_nflog_rule(int ip_version, uint16_t nflog_group);
-
-firewall_exec_exit_status_t delete_incoming_dns_nflog_rule(int ip_version, uint16_t nflog_group);
+enum firewall_exec_exit_status_t delete_incoming_dns_nflog_rule(int ip_version, uint16_t nflog_group);
 
 #endif

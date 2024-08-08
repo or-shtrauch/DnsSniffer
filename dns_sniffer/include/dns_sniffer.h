@@ -13,74 +13,73 @@
 #define IPV4_DNS_PAYLOAD_OFFSET 28
 #define IPV6_DNS_PAYLOAD_OFFSET 48
 
-#define LOG_FILE_PATH "./log"
+#define LOG_FILE_PATH "/tmp/dns_sniffer.log"
 #define LOG_FILE_MODE "a"
 
 #define MAX_LINE_SIZE 1024
 #define DOMAIN_MAX_SIZE 256
 #define IP_MAX_SIZE 40  // using ipv6 size
 
-typedef struct nflog_handle nflog_handle_t;
-typedef struct nflog_g_handle nflog_g_handle_t;
-typedef struct nfgenmsg nfgenmsg_t;
-typedef struct nflog_data nflog_data_t;
 
-typedef enum {
+enum dns_pkt_qtype_t {
     A = 1,
     AAAA = 28,
     CNAME = 5,
     OTHER = -1
-} qtype_t;
+};
 
-typedef enum {
+enum dns_pkt_ip_version_t {
     IPV4 = 4,
     IPV6 = 6
-} ip_version_t;
+};
 
-typedef enum {
-    DS_NFLOG_OPEN_ERROR_EXIT_CODE,
-    DS_NFLOG_UNBINDING_PF_ERROR_EXIT_CODE,
-    DS_NFLOG_BINDING_PF_ERROR_EXIT_CODE,
-    DS_NFLOG_BIND_GROUP_ERROR_EXIT_CODE,
-    DS_NFLOG_SET_MODE_ERROR_EXIT_CODE,
-    DS_NFLOG_REGISTER_CALLBACK_ERROR_EXIT_CODE,
-    DS_NFLOG_OPEN_FD_ERROR_EXIT_CODE,
-    DS_GENERAL_FAILURE_EXIT_CODE,
+enum dns_sniffer_exit_status_t {
+    DS_NFLOG_OPEN_ERROR_EXIT_CODE = -9,
+    DS_NFLOG_UNBINDING_PF_ERROR_EXIT_CODE = -8,
+    DS_NFLOG_BINDING_PF_ERROR_EXIT_CODE = -7,
+    DS_NFLOG_BIND_GROUP_ERROR_EXIT_CODE = -6,
+    DS_NFLOG_SET_MODE_ERROR_EXIT_CODE = -5,
+    DS_NFLOG_REGISTER_CALLBACK_ERROR_EXIT_CODE = -4,
+    DS_NFLOG_OPEN_FD_ERROR_EXIT_CODE = -3,
+    DS_GENERAL_FAILURE_EXIT_CODE = -2,
+    DS_SIGNAL_INTERRUPT_EXIT_CODE = -1,
     DS_SUCCESS_EXIT_CODE = 0
-} dns_sniffer_exit_status_t;
+};
 
-typedef struct {
-    qtype_t query_type;
-    ip_version_t ip_version;
+struct dns_response_t {
+    enum dns_pkt_qtype_t query_type;
+    enum dns_pkt_ip_version_t ip_version;
     char dns_server[IP_MAX_SIZE];
     char domain[DOMAIN_MAX_SIZE];
-} dns_response_t;
+};
 
-typedef struct {
-    void (*callback)(dns_response_t *response, FILE *output_fd);
+struct dns_callback_data_t {
+    void (*callback)(struct dns_response_t *response, FILE *output_fd);
     FILE *output_fd;
-} dns_callback_data_t;
+};
 
-typedef struct {
-    nflog_handle_t *nflog_handle;
-    nflog_g_handle_t *nflog_group_handle;
-} dns_sniffer_t;
+struct dns_sniffer_t {
+    struct nflog_handle *nflog_handle;
+    struct nflog_g_handle *nflog_group_handle;
+    int should_exit;
+};
 
+// enum dns_sniffer_exit_status_t _init_dns_sniffer(struct dns_sniffer_t *sniffer, uint16_t nflog_group);
 
-dns_sniffer_exit_status_t init_dns_sniffer(dns_sniffer_t *sniffer, uint16_t nflog_group);
+// void parse_domain(const char *dns_payload, int dns_payload_len, struct dns_response_t *out, int *seek);
 
-void parse_domain(const char *dns_payload, int dns_payload_len, dns_response_t *out, int *seek);
+// void parse_query_type(char *dns_payload, int question_start, struct dns_response_t *out);
 
-void parse_query_type(char *dns_payload, int question_start, dns_response_t *out);
+// void parse_dns_packet(char *payload, int payload_len, struct dns_response_t *out);
 
-void parse_dns_packet(char *payload, int payload_len, dns_response_t *out);
+// int cb_handle_dns_packet(struct nflog_g_handle_t *group_handle, struct nfgenmsg_t *nfmsg, struct nflog_data_t *nfa, void *data);
 
-int cb_handle_dns_packet(nflog_g_handle_t *group_handle, nfgenmsg_t *nfmsg, nflog_data_t *nfa, void *data);
+// enum dns_sniffer_exit_status_t _register_packet_handler(struct dns_sniffer_t *sniffer, struct dns_callback_data_t *callback_data);
 
-dns_sniffer_exit_status_t register_packet_handler(dns_sniffer_t *sniffer, dns_callback_data_t *callback_data);
+// enum dns_sniffer_exit_status_t _start_dns_sniffer(struct dns_sniffer_t *sniffer);
 
-dns_sniffer_exit_status_t start_dns_sniffer(dns_sniffer_t *sniffer);
+enum dns_sniffer_exit_status_t start_dns_sniffer(struct dns_sniffer_t *sniffer, struct dns_callback_data_t *callback_data, uint16_t nflog_group);
 
-void close_dns_sniffer(dns_sniffer_t *sniffer);
+void close_dns_sniffer(struct dns_sniffer_t *sniffer);
 
 #endif
