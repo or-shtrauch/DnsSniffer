@@ -53,3 +53,5 @@ dkms.conf
 
 log
 .vscode/
+build/
+.devcontainer/

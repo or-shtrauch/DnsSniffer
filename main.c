@@ -18,11 +18,11 @@ static struct dns_sniffer_t g_sniffer = {0};
 static struct dns_callback_data_t g_callback_data = {0};
 
 void cleanup() {
-    printf("Cleaning up...\n");
-    delete_output_dns_nflog_rule(IPV4, NFLOG_GROUP);
-    delete_output_dns_nflog_rule(IPV6, NFLOG_GROUP);
+    printf("Cleaning Up...\n");
+    firewall_delete_output_dns_nflog_rule(IPV4, NFLOG_GROUP);
+    firewall_delete_output_dns_nflog_rule(IPV6, NFLOG_GROUP);
 
-    close_dns_sniffer(&g_sniffer);
+    dns_sniffer_close(&g_sniffer);
 
     if (g_callback_data.output_fd) {
         fclose(g_callback_data.output_fd);
@@ -32,14 +32,14 @@ void cleanup() {
 
 void setup_iptables_rules() {
     /* removing any existing rules from previous runs */
-    delete_output_dns_nflog_rule(IPV4, NFLOG_GROUP);
-    delete_output_dns_nflog_rule(IPV6, NFLOG_GROUP);
+    firewall_delete_output_dns_nflog_rule(IPV4, NFLOG_GROUP);
+    firewall_delete_output_dns_nflog_rule(IPV6, NFLOG_GROUP);
 
-    add_output_dns_nflog_rule(IPV4, NFLOG_GROUP);
-    add_output_dns_nflog_rule(IPV6, NFLOG_GROUP);
+    firewall_add_output_dns_nflog_rule(IPV4, NFLOG_GROUP);
+    firewall_add_output_dns_nflog_rule(IPV6, NFLOG_GROUP);
 }
 
-void cb_print_dns_packet(struct dns_response_t *response, FILE *output_fd) {
+void print_dns_packet_cb(struct dns_response_t *response, FILE *output_fd) {
     char timestamp[20];
     time_t now = time(NULL);
     struct tm *local = localtime(&now);
@@ -65,45 +65,41 @@ void cb_print_dns_packet(struct dns_response_t *response, FILE *output_fd) {
 
 void signal_handler(int signum) {
     g_sniffer.should_exit = 1;
-    printf("got signal %d\n", signum);
+    printf("Got Signal %d\n", signum);
 }
 
-enum dns_sniffer_exit_status_t exit_code;
 int main() {
-    int return_code;
+    int return_code = SUCCESS_EXIT;
 
-    return_code = SUCCESS_EXIT;
-
-    printf("Setting up signal handlers\n");
+    printf("Setting Up Signal Handlers\n");
     signal(SIGINT, signal_handler);
     signal(SIGTERM, signal_handler);
 
-    printf("opening log file\n");
+    printf("Opening Log File\n");
     g_callback_data.output_fd = fopen(LOG_FILE_PATH, LOG_FILE_MODE);
     if (!g_callback_data.output_fd) {
-        printf("Error opening log file\n");
+        printf("Error Opening Log File\n");
         return_code = FAILURE_EXIT;
         goto cleanup;
     }
 
-    printf("Setting up iptables rules\n");
+    printf("Setting Up Iptables Rules\n");
     setup_iptables_rules();
 
-    printf("Initializing DNS sniffer\n");
-    g_callback_data.callback = cb_print_dns_packet;
-    exit_code = start_dns_sniffer(&g_sniffer, &g_callback_data, NFLOG_GROUP);
-    if (exit_code < DS_SIGNAL_INTERRUPT_EXIT_CODE) {
-        printf("Failed to initialize sniffer, exit code: %d\n", exit_code);
-        return_code = FAILURE_EXIT;
+    printf("Initializing DNS Sniffer\n");
+    g_callback_data.callback = print_dns_packet_cb;
+    return_code = dns_sniffer_start(&g_sniffer, &g_callback_data, NFLOG_GROUP);
+    if (return_code < DS_SIGNAL_INTERRUPT_EXIT_CODE) {
+        printf("Failed To Initialize Sniffer, Exit Code: %d\n", return_code);
         goto cleanup;
     }
 
-    if (exit_code == DS_SIGNAL_INTERRUPT_EXIT_CODE) {
-        printf("Received interrupt signal\n");
+    if (return_code == DS_SIGNAL_INTERRUPT_EXIT_CODE) {
+        printf("Received Interrupt Signal\n");
     }
 
 cleanup:
     cleanup();
-    printf("Exiting with code: %d\n", return_code);
+    printf("Exiting With Code: %d\n", return_code);
     return return_code;
 }

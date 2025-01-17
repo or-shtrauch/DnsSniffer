@@ -66,22 +66,8 @@ struct dns_sniffer_t {
     int should_exit;
 };
 
-// enum dns_sniffer_exit_status_t _init_dns_sniffer(struct dns_sniffer_t *sniffer, uint16_t nflog_group);
+int dns_sniffer_start(struct dns_sniffer_t *sniffer, struct dns_callback_data_t *callback_data, uint16_t nflog_group);
 
-// void parse_domain(const char *dns_payload, int dns_payload_len, struct dns_response_t *out, int *seek);
-
-// void parse_query_type(char *dns_payload, int question_start, struct dns_response_t *out);
-
-// void parse_dns_packet(char *payload, int payload_len, struct dns_response_t *out);
-
-// int cb_handle_dns_packet(struct nflog_g_handle_t *group_handle, struct nfgenmsg_t *nfmsg, struct nflog_data_t *nfa, void *data);
-
-// enum dns_sniffer_exit_status_t _register_packet_handler(struct dns_sniffer_t *sniffer, struct dns_callback_data_t *callback_data);
-
-// enum dns_sniffer_exit_status_t _start_dns_sniffer(struct dns_sniffer_t *sniffer);
-
-enum dns_sniffer_exit_status_t start_dns_sniffer(struct dns_sniffer_t *sniffer, struct dns_callback_data_t *callback_data, uint16_t nflog_group);
-
-void close_dns_sniffer(struct dns_sniffer_t *sniffer);
+void dns_sniffer_close(struct dns_sniffer_t *sniffer);
 
 #endif

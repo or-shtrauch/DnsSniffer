@@ -12,14 +12,22 @@ enum iptables_rule_action_t {
     ADD_RULE = 0
 };
 
+enum firewall_iptables_chain_t {
+    INPUT_CHAIN = 0,
+    OUTPUT_CHAIN = 1,
+    FORWARD_CHAIN = 2,
+    MAX_CHAIN = 3,
+};
+
 enum firewall_exec_exit_status_t {
+    FW_INVALID_ERROR_EXIT_CODE = -3,
     FW_EXEC_ERROR_EXIT_CODE = -2,
     FW_FORK_ERROR_EXIT_CODE = -1,
     FW_SUCCESS_EXIT_CODE = 0,
 };
 
-enum firewall_exec_exit_status_t add_output_dns_nflog_rule(int ip_version, uint16_t nflog_group);
+int firewall_add_output_dns_nflog_rule(int ip_version, uint16_t nflog_group);
 
-enum firewall_exec_exit_status_t delete_output_dns_nflog_rule(int ip_version, uint16_t nflog_group);
+int firewall_delete_output_dns_nflog_rule(int ip_version, uint16_t nflog_group);
 
 #endif

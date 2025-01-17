@@ -6,7 +6,7 @@
 #include <string.h>
 #include <unistd.h>
 
-static enum dns_sniffer_exit_status_t _init_dns_sniffer(struct dns_sniffer_t *dns_sniffer, uint16_t nflog_group) {
+static int dns_sniffer_init_dns_sniffer(struct dns_sniffer_t *dns_sniffer, uint16_t nflog_group) {
     dns_sniffer->nflog_handle = NULL;
     dns_sniffer->nflog_group_handle = NULL;
 
@@ -36,7 +36,7 @@ static enum dns_sniffer_exit_status_t _init_dns_sniffer(struct dns_sniffer_t *dn
     return DS_SUCCESS_EXIT_CODE;
 }
 
-static void parse_domain(const char *dns_payload, int dns_payload_len, struct dns_response_t *out, int *seek) {
+static void dns_sniffer_parse_domain(const char *dns_payload, int dns_payload_len, struct dns_response_t *out, int *seek) {
     /*
         to make sure were not going out of bounds in `data`,
         if `data` is smaller or equal to the size of the dns header section
@@ -82,7 +82,7 @@ static void parse_domain(const char *dns_payload, int dns_payload_len, struct dn
     out->domain[char_index] = '\0';
 }
 
-static void parse_query_type(char *dns_payload, int question_start, struct dns_response_t *out) {
+static void dns_sniffer_parse_query_type(char *dns_payload, int question_start, struct dns_response_t *out) {
     /*
         the qtype field is 16 bit long, so ill be using an `uint16_t` field to
         fetch its value the field resides right
@@ -93,7 +93,7 @@ static void parse_query_type(char *dns_payload, int question_start, struct dns_r
     out->query_type = (enum dns_pkt_qtype_t)ntohs(qtype);
 }
 
-static void parse_dns_packet(char *payload, int payload_len, struct dns_response_t *out) {
+static void dns_sniffer_parse_dns_packet(char *payload, int payload_len, struct dns_response_t *out) {
     int dns_payload_len, seek = 0;
     char *dns_payload;
 
@@ -123,11 +123,11 @@ static void parse_dns_packet(char *payload, int payload_len, struct dns_response
         dns_payload_len = payload_len - IPV6_DNS_PAYLOAD_OFFSET;
     }
 
-    parse_domain(dns_payload, dns_payload_len, out, &seek);
-    parse_query_type(dns_payload, seek, out);
+    dns_sniffer_parse_domain(dns_payload, dns_payload_len, out, &seek);
+    dns_sniffer_parse_query_type(dns_payload, seek, out);
 }
 
-static int cb_handle_dns_packet(struct nflog_g_handle *group_handle, struct nfgenmsg *nfmsg, struct nflog_data *nfa, void *data) {
+static int dns_sniffer_handle_dns_packet_cb(struct nflog_g_handle *group_handle, struct nfgenmsg *nfmsg, struct nflog_data *nfa, void *data) {
     (void)group_handle;
 
     struct dns_callback_data_t *callback_data = (struct dns_callback_data_t *)data;
@@ -143,21 +143,21 @@ static int cb_handle_dns_packet(struct nflog_g_handle *group_handle, struct nfge
     char ip_version = (payload[0] >> 4) & IP_VERSION_MASK;
     dns_response.ip_version = (enum dns_pkt_ip_version_t)ip_version;
 
-    parse_dns_packet(payload, payload_len, &dns_response);
+    dns_sniffer_parse_dns_packet(payload, payload_len, &dns_response);
 
     callback_data->callback(&dns_response, callback_data->output_fd);
     return DS_SUCCESS_EXIT_CODE;
 }
 
-static enum dns_sniffer_exit_status_t _register_packet_handler(struct dns_sniffer_t *sniffer, struct dns_callback_data_t *callback_data) {
-    if (nflog_callback_register(sniffer->nflog_group_handle, cb_handle_dns_packet, callback_data) < 0) {
+static int dns_sniffer_register_packet_handler(struct dns_sniffer_t *sniffer, struct dns_callback_data_t *callback_data) {
+    if (nflog_callback_register(sniffer->nflog_group_handle, dns_sniffer_handle_dns_packet_cb, callback_data) < 0) {
         return DS_NFLOG_REGISTER_CALLBACK_ERROR_EXIT_CODE;
     }
 
     return DS_SUCCESS_EXIT_CODE;
 }
 
-static enum dns_sniffer_exit_status_t _start_dns_sniffer(struct dns_sniffer_t *sniffer) {
+static int dns_sniffer_sniff(struct dns_sniffer_t *sniffer) {
     int nflog_file_descriptor, rv;
     char buffer[BUFFER_SIZE];
 
@@ -184,33 +184,30 @@ static enum dns_sniffer_exit_status_t _start_dns_sniffer(struct dns_sniffer_t *s
     return DS_SUCCESS_EXIT_CODE;
 }
 
-enum dns_sniffer_exit_status_t start_dns_sniffer(struct dns_sniffer_t *sniffer, struct dns_callback_data_t *callback_data, uint16_t nflog_group) {
-    enum dns_sniffer_exit_status_t exit_code;
+int dns_sniffer_start(struct dns_sniffer_t *sniffer, struct dns_callback_data_t *callback_data, uint16_t nflog_group) {
+    int exit_code;
 
-    printf("initializing dns_sniffer\n");
-    exit_code = _init_dns_sniffer(sniffer, nflog_group);
+    exit_code = dns_sniffer_init_dns_sniffer(sniffer, nflog_group);
     if (exit_code != DS_SUCCESS_EXIT_CODE) {
         goto cleanup;
     }
 
-    printf("registering callback function\n");
-    exit_code = _register_packet_handler(sniffer, callback_data);
+    exit_code = dns_sniffer_register_packet_handler(sniffer, callback_data);
     if (exit_code != DS_SUCCESS_EXIT_CODE) {
         goto cleanup;
     }
 
-    printf("runnning sniffer\n");
-    exit_code = _start_dns_sniffer(sniffer);
+    exit_code = dns_sniffer_sniff(sniffer);
     if (exit_code != DS_SUCCESS_EXIT_CODE) {
         goto cleanup;
     }
 
 cleanup:
-    close_dns_sniffer(sniffer);
+    dns_sniffer_close(sniffer);
     return exit_code;
 }
 
-void close_dns_sniffer(struct dns_sniffer_t *sniffer) {
+void dns_sniffer_close(struct dns_sniffer_t *sniffer) {
     if (!sniffer) {
         return;
     }

@@ -1,0 +1,9 @@
+[submodule "submodules/libnetfilter_log"]
+	path = submodules/libnetfilter_log
+	url = https://git.netfilter.org/libnetfilter_log
+[submodule "submodules/libnfnetlink"]
+	path = submodules/libnfnetlink
+	url = https://git.netfilter.org/libnfnetlink
+[submodule "submodules/libmnl"]
+	path = submodules/libmnl
+	url = https://git.netfilter.org/libmnl
